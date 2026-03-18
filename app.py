@@ -99,7 +99,7 @@ if st.button("Find Winning Niches"):
                 avg_price = sum(prices) / len(prices)
                 competition = len(titles)
 
-                if competition < 10 and avg_price > 10:
+                if competition < 50 and avg_price > 8:
                     results.append((kw, competition, round(avg_price, 2)))
         except:
             pass
