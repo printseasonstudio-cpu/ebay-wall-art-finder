@@ -1,53 +1,87 @@
 import streamlit as st
-import random
+import requests
+from bs4 import BeautifulSoup
 
-st.title("🔥 eBay Wall Art Finder")
+st.title("🔥 eBay Wall Art Finder (Real Data)")
 
 if "saved" not in st.session_state:
     st.session_state.saved = []
 
 mode = st.radio("Choose Mode", ["Trend Search", "Idea Generator"])
 
+# ---------------- REAL EBAY SEARCH ----------------
+def get_ebay_data(keyword):
+    url = f"https://www.ebay.com/sch/i.html?_nkw={keyword}"
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    items = soup.select(".s-item")
+
+    prices = []
+    titles = []
+
+    for item in items[:20]:
+        title = item.select_one(".s-item__title")
+        price = item.select_one(".s-item__price")
+
+        if title and price:
+            titles.append(title.text)
+            price_text = price.text.replace("$", "").split(" ")[0]
+            try:
+                prices.append(float(price_text))
+            except:
+                pass
+
+    return titles, prices
+
+# ---------------- TREND SEARCH ----------------
 if mode == "Trend Search":
     keyword = st.text_input("Enter keyword")
 
-    if st.button("Find Trends"):
-        demand = random.randint(50, 100)
-        competition = random.randint(10, 100)
+    if st.button("Find Real Trends"):
+        if keyword:
+            titles, prices = get_ebay_data(keyword)
 
-        st.write("Demand:", demand)
-        st.write("Competition:", competition)
+            if prices:
+                avg_price = sum(prices) / len(prices)
 
-        if demand > 70 and competition < 50:
-            st.success("🔥 Winning niche")
-        elif competition > 70:
-            st.error("Too competitive")
-        else:
-            st.warning("Moderate opportunity")
+                st.write(f"📊 Listings analyzed: {len(titles)}")
+                st.write(f"💰 Avg Price: ${round(avg_price,2)}")
 
-        ideas = [
-            f"{keyword} Minimal Poster",
-            f"{keyword} Vintage Poster",
-            f"{keyword} Typography Art"
-        ]
+                if len(titles) > 15:
+                    st.error("❌ High Competition")
+                elif len(titles) > 8:
+                    st.warning("⚠️ Medium Competition")
+                else:
+                    st.success("🔥 Low Competition (Good Niche)")
 
-        for idea in ideas:
-            if st.button("Save " + idea):
-                st.session_state.saved.append(idea)
+                st.subheader("Top Listings")
 
-if mode == "Idea Generator":
+                for t in titles[:5]:
+                    st.write("•", t)
+
+# ---------------- IDEA GENERATOR ----------------
+elif mode == "Idea Generator":
     if st.button("Generate Ideas"):
         ideas = [
-            "Krishna Line Art Poster",
-            "Gym Motivation Poster",
-            "Paris Travel Poster",
-            "Anime Neon Poster"
+            "Krishna Minimal Line Art Poster",
+            "Dark Gym Motivation Poster",
+            "Vintage Paris Travel Poster",
+            "Anime Neon Poster",
+            "Luxury Gold Abstract Art",
+            "Spiritual Mandala Wall Art"
         ]
 
         for idea in ideas:
-            if st.button("Save " + idea):
+            col1, col2 = st.columns([4,1])
+            col1.write(idea)
+            if col2.button("Save", key=idea):
                 st.session_state.saved.append(idea)
 
+# ---------------- SAVED ----------------
 st.subheader("Saved Ideas")
+
 for s in st.session_state.saved:
     st.write("✔", s)
